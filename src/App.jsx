@@ -9,6 +9,7 @@ import AdminAssignTask from "./pages/admin/AssignTask"
 import DataPage from "./pages/admin/DataPage"
 import AdminDataPage from "./pages/admin/admin-data-page"
 import AccountDataPage from "./pages/delegation"
+import Reverifcation from "./pages/Re-verification"
 import "./index.css"
 
 // Auth wrapper component to protect routes
@@ -98,7 +99,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        {/* Re-verification route */}
+        <Route
+          path="/dashboard/re-verification"
+          element={
+            <ProtectedRoute>
+              <Reverifcation />
+            </ProtectedRoute>
+          }
+        />
         {/* Data routes */}
         <Route
           path="/dashboard/data/:category"

@@ -87,6 +87,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
      active: location.pathname === "/dashboard/delegation",
      showFor: ["admin", "user"] // Only show for admin
    },
+   {
+      href: "/dashboard/re-verification",
+     label: "Verification",
+     icon: ClipboardList,
+     active: location.pathname === "/dashboard/re-verification",
+     showFor: ["admin"] // Only show for admin
+   },
     {
       href: "#",
       label: "Data",
