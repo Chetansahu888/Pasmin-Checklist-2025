@@ -481,7 +481,7 @@ function ReverificationPage() {
         <div className="rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
             <h2 className="text-purple-700 font-medium">
-              {showHistory ? "Completed Re-verification Tasks" : "Pending Verification Tasks"}
+              {showHistory ? "Completed Verification Tasks" : "Pending Verification Tasks"}
             </h2>
             <p className="text-purple-600 text-sm">
               {showHistory
