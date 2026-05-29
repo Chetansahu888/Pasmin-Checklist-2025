@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Sparkles, FileText, AlertCircle, User, Calendar, ChevronRight } from "lucide-react"
 import AdminLayout from "../components/layout/AdminLayout"
+import { sendOverdueAlert } from "../utils/telegram"
 
 // Configuration object - Move all configurations here
 const CONFIG = {
@@ -410,6 +411,23 @@ function DelegationDataPage() {
   useEffect(() => {
     fetchSheetData()
   }, [fetchSheetData])
+
+  // Send overdue alert once per day when admin opens the page
+  useEffect(() => {
+    if (accountData.length === 0 || userRole !== "admin") return
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const overdueTasks = accountData.filter((task) => {
+      const plannedDate = parseDateFromDDMMYYYY(task["col10"])
+      if (!plannedDate) return false
+      plannedDate.setHours(0, 0, 0, 0)
+      return plannedDate < today
+    })
+
+    sendOverdueAlert(overdueTasks)
+  }, [accountData, userRole, parseDateFromDDMMYYYY])
 
   const handleSelectItem = useCallback((id, isChecked) => {
     setSelectedItems((prev) => {

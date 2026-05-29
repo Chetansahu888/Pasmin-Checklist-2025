@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BellRing, FileCheck, Calendar, Clock, Users, FileText, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import AdminLayout from "../../components/layout/AdminLayout";
+import { sendTaskAssignedNotification } from "../../utils/telegram";
 
 // Enhanced Calendar Component
 const CalendarComponent = ({ date, onChange, onClose }) => {
@@ -672,6 +673,18 @@ export default function AssignTask() {
       );
 
       alert(`Successfully submitted ${generatedTasks.length} tasks to ${submitSheetName} sheet in one batch!`);
+
+      sendTaskAssignedNotification({
+        doer: formData.doer,
+        description: formData.description,
+        department: formData.taskType === "delegation" ? "DELEGATION" : formData.department,
+        givenBy: formData.givenBy,
+        frequency: formData.frequency,
+        startDate: generatedTasks[0]?.dueDate || formatDateToDDMMYYYY(selectedDate),
+        totalTasks: generatedTasks.length,
+        requireAttachment: formData.requireAttachment,
+        enableReminders: formData.enableReminders,
+      });
 
       setFormData({
         taskType: "checklist",
