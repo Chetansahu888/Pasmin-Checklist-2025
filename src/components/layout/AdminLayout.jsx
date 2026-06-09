@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { CheckSquare, ClipboardList, Home, LogOut, Menu, Database, ChevronDown, ChevronRight ,Video,KeyRound} from 'lucide-react'
+import { CheckSquare, ClipboardList, Home, LogOut, Menu, Database, ChevronDown, ChevronRight, Video, KeyRound, BarChart3 } from 'lucide-react'
 
 export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
   const location = useLocation()
@@ -79,7 +79,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Assign Task",
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
-      showFor: ["admin"] // Only show for admin
+      showFor: ["admin"]
+    },
+    {
+      href: "/dashboard/pc-dashboard",
+      label: "PC Dashboard",
+      icon: BarChart3,
+      active: location.pathname === "/dashboard/pc-dashboard",
+      showFor: ["admin"]
     },
     {
       href: "/dashboard/delegation",

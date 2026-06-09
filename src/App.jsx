@@ -12,6 +12,7 @@ import AccountDataPage from "./pages/delegation"
 import Reverifcation from "./pages/Re-verification"
 import LearningVideo from "./pages/admin/TrainingVideo"
 import License from "./pages/admin/License"
+import PCDashboard from "./pages/admin/PCDashboard"
 import "./index.css"
 
 // Auth wrapper component to protect routes
@@ -137,13 +138,21 @@ function App() {
     </ProtectedRoute>
   } 
 />
-<Route 
-  path="/dashboard/license" 
+<Route
+  path="/dashboard/license"
   element={
     <ProtectedRoute allowedRoles={["admin"]}>
       <License />
     </ProtectedRoute>
-  } 
+  }
+/>
+<Route
+  path="/dashboard/pc-dashboard"
+  element={
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <PCDashboard />
+    </ProtectedRoute>
+  }
 />
 
         {/* Backward compatibility redirects */}
