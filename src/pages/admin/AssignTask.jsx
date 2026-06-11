@@ -286,15 +286,18 @@ export default function AssignTask() {
         return 0;
       }
 
+      // Last entry ka Task ID use karo (max nahi, actual last row)
       let lastTaskId = 0;
-      data.table.rows.forEach((row) => {
+      for (let i = data.table.rows.length - 1; i >= 0; i--) {
+        const row = data.table.rows[i];
         if (row.c && row.c[1] && row.c[1].v) {
           const taskId = parseInt(row.c[1].v);
-          if (!isNaN(taskId) && taskId > lastTaskId) {
+          if (!isNaN(taskId)) {
             lastTaskId = taskId;
+            break;
           }
         }
-      });
+      }
 
       return lastTaskId;
     } catch (error) {
