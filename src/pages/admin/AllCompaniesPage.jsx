@@ -773,7 +773,7 @@ export default function AllCompaniesPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-              Companies
+              Check List Task Dashboards
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">All company task dashboards in one place</p>
           </div>
