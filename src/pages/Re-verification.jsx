@@ -36,6 +36,8 @@ function ReverificationPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [userRole, setUserRole] = useState("")
   const [username, setUsername] = useState("")
+  const [filterGivenBy, setFilterGivenBy] = useState("")
+  const [filterName, setFilterName] = useState("")
 
   const formatDateToDDMMYYYY = (date) => {
     const day = date.getDate().toString().padStart(2, "0")
@@ -91,6 +93,14 @@ function ReverificationPage() {
     return new Date(parts[2], parts[1] - 1, parts[0])
   }
 
+  const calcDays = (startStr, endStr) => {
+    const start = parseDateFromDDMMYYYY(startStr)
+    const end = endStr ? parseDateFromDDMMYYYY(endStr) : new Date()
+    if (!start || !end) return null
+    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24))
+    return diff >= 0 ? diff : null
+  }
+
   const sortDateWise = (a, b) => {
     const dateStrA = a["colK"] || ""
     const dateStrB = b["colK"] || ""
@@ -101,18 +111,32 @@ function ReverificationPage() {
     return dateA.getTime() - dateB.getTime()
   }
 
+  // Unique dropdown options derived from all loaded data
+  const givenByOptions = useMemo(() => {
+    const all = [...taskData, ...historyData]
+    return [...new Set(all.map((t) => t["colD"]).filter(Boolean))].sort()
+  }, [taskData, historyData])
+
+  const nameOptions = useMemo(() => {
+    const all = [...taskData, ...historyData]
+    return [...new Set(all.map((t) => t["colE"]).filter(Boolean))].sort()
+  }, [taskData, historyData])
+
   // Memoized filtered data
   const filteredTaskData = useMemo(() => {
-    const filtered = searchTerm
-      ? taskData.filter((task) =>
-        Object.values(task).some(
-          (value) => value && value.toString().toLowerCase().includes(searchTerm.toLowerCase()),
-        ),
-      )
-      : taskData
+    const filtered = taskData.filter((task) => {
+      const matchesSearch = searchTerm
+        ? Object.values(task).some(
+            (value) => value && value.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+          )
+        : true
+      const matchesGivenBy = filterGivenBy ? task["colD"] === filterGivenBy : true
+      const matchesName = filterName ? task["colE"] === filterName : true
+      return matchesSearch && matchesGivenBy && matchesName
+    })
 
     return filtered.sort(sortDateWise)
-  }, [taskData, searchTerm])
+  }, [taskData, searchTerm, filterGivenBy, filterName])
 
   const filteredHistoryData = useMemo(() => {
     return historyData
@@ -122,7 +146,9 @@ function ReverificationPage() {
             (value) => value && value.toString().toLowerCase().includes(searchTerm.toLowerCase()),
           )
           : true
-        return matchesSearch
+        const matchesGivenBy = filterGivenBy ? item["colD"] === filterGivenBy : true
+        const matchesName = filterName ? item["colE"] === filterName : true
+        return matchesSearch && matchesGivenBy && matchesName
       })
       .sort((a, b) => {
         const dateStrA = a["colS"] || ""
@@ -133,7 +159,7 @@ function ReverificationPage() {
         if (!dateB) return -1
         return dateB.getTime() - dateA.getTime()
       })
-  }, [historyData, searchTerm])
+  }, [historyData, searchTerm, filterGivenBy, filterName])
 
   const fetchSheetData = useCallback(async () => {
     try {
@@ -224,7 +250,7 @@ function ReverificationPage() {
           colI: rowValues[8] || "",
           colJ: rowValues[9] || "",
           colK: rowValues[10] ? parseGoogleSheetsDate(String(rowValues[10])) : "", // Planned Date
-          colL: rowValues[11] || "",
+          colL: rowValues[11] ? parseGoogleSheetsDate(String(rowValues[11])) : "", // Mark Done Date
           colM: rowValues[12] || "",
           colN: rowValues[13] || "",
           colO: rowValues[14] || "",
@@ -315,6 +341,8 @@ function ReverificationPage() {
   const toggleHistory = () => {
     setShowHistory((prev) => !prev)
     setSearchTerm("")
+    setFilterGivenBy("")
+    setFilterName("")
   }
 
   // MAIN SUBMIT FUNCTION
@@ -492,6 +520,37 @@ function ReverificationPage() {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
+
+            <select
+              value={filterGivenBy}
+              onChange={(e) => setFilterGivenBy(e.target.value)}
+              className="min-w-[150px] py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-700"
+            >
+              <option value="">All Given By</option>
+              {givenByOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            <select
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              className="min-w-[150px] py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-700"
+            >
+              <option value="">All Names</option>
+              {nameOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            {(filterGivenBy || filterName) && (
+              <button
+                onClick={() => { setFilterGivenBy(""); setFilterName("") }}
+                className="py-2 px-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-100 transition-all font-medium"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -562,6 +621,9 @@ function ReverificationPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">
                       Verification Date
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-orange-50">
+                      Work Done Days
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">
                       Remarks
                     </th>
@@ -569,7 +631,9 @@ function ReverificationPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredHistoryData.length > 0 ? (
-                    filteredHistoryData.map((history) => (
+                    filteredHistoryData.map((history) => {
+                      const days = calcDays(history["colG"], history["colL"])
+                      return (
                       <tr key={history._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{history["colB"] || "—"}</div>
@@ -597,16 +661,28 @@ function ReverificationPage() {
                         <td className="px-6 py-4 whitespace-nowrap bg-green-50">
                           <div className="text-sm font-medium text-gray-900">{history["colS"] || "—"}</div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap bg-orange-50">
+                          {days !== null ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                              days <= 7 ? "bg-green-100 text-green-700" :
+                              days <= 30 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-red-100 text-red-700"
+                            }`}>
+                              {days} {days === 1 ? "day" : "days"}
+                            </span>
+                          ) : "—"}
+                        </td>
                         <td className="px-6 py-4 bg-purple-50">
                           <div className="text-sm text-gray-900 max-w-xs" title={history["colT"]}>
                             {history["colT"] || "—"}
                           </div>
                         </td>
                       </tr>
-                    ))
+                      )
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={10} className="px-6 py-4 text-center text-gray-500">
                         {searchTerm
                           ? "No historical records matching your search"
                           : "No completed re-verification records found"}
@@ -651,6 +727,9 @@ function ReverificationPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
                       Planned Date
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-orange-50">
+                      Work Done Days
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">
                       Remarks
                     </th>
@@ -660,6 +739,7 @@ function ReverificationPage() {
                   {filteredTaskData.length > 0 ? (
                     filteredTaskData.map((task) => {
                       const isSelected = selectedItems.has(task._id)
+                      const daysPending = calcDays(task["colG"], task["colL"])
                       return (
                         <tr key={task._id} className={`${isSelected ? "bg-blue-50/50 shadow-sm" : ""} hover:bg-slate-50 transition-all`}>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -693,6 +773,17 @@ function ReverificationPage() {
                           <td className="px-6 py-4 whitespace-nowrap bg-blue-50">
                             <div className="text-sm text-gray-900">{task["colK"] || "—"}</div>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap bg-orange-50">
+                            {daysPending !== null ? (
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                                daysPending <= 7 ? "bg-green-100 text-green-700" :
+                                daysPending <= 30 ? "bg-yellow-100 text-yellow-700" :
+                                "bg-red-100 text-red-700"
+                              }`}>
+                                {daysPending} {daysPending === 1 ? "day" : "days"}
+                              </span>
+                            ) : "—"}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap bg-purple-50">
                             <input
                               type="text"
@@ -708,7 +799,7 @@ function ReverificationPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={10} className="px-6 py-4 text-center text-gray-500">
                         {searchTerm
                           ? "No tasks matching your search"
                           : "No pending re-verification tasks found"}

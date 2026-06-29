@@ -62,6 +62,8 @@ function DelegationDataPage() {
   const [endDate, setEndDate] = useState("")
   const [userRole, setUserRole] = useState("")
   const [username, setUsername] = useState("")
+  const [filterGivenBy, setFilterGivenBy] = useState("")
+  const [filterName, setFilterName] = useState("")
 
   // Debounced search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
@@ -167,7 +169,17 @@ function DelegationDataPage() {
     setSearchTerm("")
     setStartDate("")
     setEndDate("")
+    setFilterGivenBy("")
+    setFilterName("")
   }, [])
+
+  const givenByOptions = useMemo(() =>
+    [...new Set(accountData.map(t => t["col3"]).filter(Boolean))].sort()
+  , [accountData])
+
+  const nameOptions = useMemo(() =>
+    [...new Set(accountData.map(t => t["col4"]).filter(Boolean))].sort()
+  , [accountData])
 
   // Get color based on data from column R
   const getRowColor = useCallback((colorCode) => {
@@ -190,16 +202,16 @@ function DelegationDataPage() {
 
   // Optimized filtered data with debounced search
   const filteredAccountData = useMemo(() => {
-    const filtered = debouncedSearchTerm
-      ? accountData.filter((account) =>
-        Object.values(account).some(
-          (value) => value && value.toString().toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
-        ),
-      )
-      : accountData
-
+    const filtered = accountData.filter((account) => {
+      const matchSearch = debouncedSearchTerm
+        ? Object.values(account).some(v => v && v.toString().toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+        : true
+      const matchGivenBy = filterGivenBy ? account["col3"] === filterGivenBy : true
+      const matchName = filterName ? account["col4"] === filterName : true
+      return matchSearch && matchGivenBy && matchName
+    })
     return filtered.sort(sortDateWise)
-  }, [accountData, debouncedSearchTerm, sortDateWise])
+  }, [accountData, debouncedSearchTerm, sortDateWise, filterGivenBy, filterName])
 
   // Updated history filtering with user filter based on column H
   const filteredHistoryData = useMemo(() => {
@@ -740,6 +752,35 @@ function DelegationDataPage() {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
+
+            {!showHistory && (
+              <>
+                <select
+                  value={filterGivenBy}
+                  onChange={(e) => setFilterGivenBy(e.target.value)}
+                  className="min-w-[140px] py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                >
+                  <option value="">All Given By</option>
+                  {givenByOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+
+                <select
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="min-w-[140px] py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-700"
+                >
+                  <option value="">All Names</option>
+                  {nameOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+
+                {(filterGivenBy || filterName || searchTerm) && (
+                  <button onClick={resetFilters}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-100">
+                    Clear Filters
+                  </button>
+                )}
+              </>
+            )}
 
             {showHistory && (
               <div className="flex items-center gap-2">

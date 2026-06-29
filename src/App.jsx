@@ -13,6 +13,7 @@ import Reverifcation from "./pages/Re-verification"
 import LearningVideo from "./pages/admin/TrainingVideo"
 import License from "./pages/admin/License"
 import PCDashboard from "./pages/admin/PCDashboard"
+import AllCompaniesPage from "./pages/admin/AllCompaniesPage"
 import "./index.css"
 
 // Auth wrapper component to protect routes
@@ -154,6 +155,16 @@ function App() {
     </ProtectedRoute>
   }
 />
+
+        {/* All Companies unified page */}
+        <Route
+          path="/dashboard/companies"
+          element={
+            <ProtectedRoute>
+              <AllCompaniesPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Backward compatibility redirects */}
         <Route path="/admin/*" element={<Navigate to="/dashboard/admin" replace />} />

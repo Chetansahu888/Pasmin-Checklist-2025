@@ -35,21 +35,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
     navigate("/login")
   }
 
-  // Filter dataCategories based on user role
-  const dataCategories = [
-    //{ id: "main", name: "PURAB", link: "/dashboard/data/main" },
-    { id: "sales", name: "PMMPL", link: "/dashboard/data/sales" },
-    // { id: "service", name: "Service", link: "/dashboard/data/service" },
-    { id: "account", name: "RKL", link: "/dashboard/data/account" },
-    { id: "warehouse", name: "REFRASYNTH", link: "/dashboard/data/warehouse" },
-    { id: "refratech", name: "REFRATECH", link: "/dashboard/data/refratech" },
-    //{ id: "delegation", name: "Delegation", link: "/dashboard/data/delegation" },
-    //{ id: "purchase", name: "Slag Crusher", link: "/dashboard/data/purchase" },
-    //{ id: "director", name: "Hr", link: "/dashboard/data/director" },
-    { id: "managing-director", name: "PURAB", link: "/dashboard/data/managing-director" },
-    // { id: "coo", name: "COO", link: "/dashboard/data/coo" },
-    // { id: "jockey", name: "Jockey", link: "/dashboard/data/jockey"},
-  ]
+  const dataCategories = []
 
   // Determine which departments to show in the submenu
   // const getAccessibleDepartments = () => {
@@ -100,16 +86,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
      label: "Verification",
      icon: ClipboardList,
      active: location.pathname === "/dashboard/re-verification",
-     showFor: ["admin"] // Only show for admin
+     showFor: ["admin"]
    },
-    {
-      href: "#",
-      label: "Data",
+   {
+      href: "/dashboard/companies",
+      label: "Companies",
       icon: Database,
-      active: location.pathname.includes("/dashboard/data"),
-      submenu: true,
-      showFor: ["admin", "user"] // Show for both roles
-    },
+      active: location.pathname === "/dashboard/companies",
+      showFor: ["admin", "user"]
+   },
     {
       href: "/dashboard/license",
       label: "License",
