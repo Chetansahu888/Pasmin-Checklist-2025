@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { CheckSquare, ClipboardList, Home, LogOut, Menu, Database, ChevronDown, ChevronRight, Video, KeyRound, BarChart3 } from 'lucide-react'
+import { CheckSquare, ClipboardList, Home, LogOut, Menu, Database, ChevronDown, ChevronRight, Video, KeyRound, BarChart3, ListTodo } from 'lucide-react'
 
 export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
   const location = useLocation()
@@ -109,8 +109,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: Video,
       active: location.pathname === "/dashboard/LearningVideo",
       showFor: ["admin", "user"] // Show for both roles
-      },
-
+    },
+    {
+      href: "/dashboard/checklist-master",
+      label: "Check List Master",
+      icon: ListTodo,
+      active: location.pathname === "/dashboard/checklist-master",
+      showFor: ["admin"] // Show only for admin
+    }
   ]
 
   // Memoized accessible departments and routes to optimize performance

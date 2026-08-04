@@ -14,6 +14,7 @@ import LearningVideo from "./pages/admin/TrainingVideo"
 import License from "./pages/admin/License"
 import PCDashboard from "./pages/admin/PCDashboard"
 import AllCompaniesPage from "./pages/admin/AllCompaniesPage"
+import CheckListMaster from "./pages/admin/CheckListMaster"
 import "./index.css"
 
 // Auth wrapper component to protect routes
@@ -152,6 +153,14 @@ function App() {
   element={
     <ProtectedRoute allowedRoles={["admin"]}>
       <PCDashboard />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/dashboard/checklist-master"
+  element={
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <CheckListMaster />
     </ProtectedRoute>
   }
 />
