@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { CheckCircle2, Search, History, ArrowLeft, Sparkles, FileText, Calendar, Filter, ChevronRight, AlertCircle } from "lucide-react"
 import AdminLayout from "../components/layout/AdminLayout"
+import { fetchSheetDataFast } from "../utils/sheetApi"
 
 // Configuration object
 const CONFIG = {
@@ -164,58 +165,34 @@ function ReverificationPage() {
   const fetchSheetData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const pendingTasks = []
       const historyTasks = []
 
-      const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.SHEET_NAME}&action=fetch`)
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`)
-      }
-
-      const text = await response.text()
-      let data
-
-      try {
-        data = JSON.parse(text)
-      } catch (parseError) {
-        const jsonStart = text.indexOf("{")
-        const jsonEnd = text.lastIndexOf("}")
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          const jsonString = text.substring(jsonStart, jsonEnd + 1)
-          data = JSON.parse(jsonString)
-        } else {
-          throw new Error("Invalid JSON response from server")
-        }
-      }
+      const { rows, isGviz } = await fetchSheetDataFast(CONFIG.SHEET_NAME)
 
       const currentUsername = sessionStorage.getItem("username")
       const currentUserRole = sessionStorage.getItem("role")
 
-      let rows = []
-      if (data.table && data.table.rows) {
-        rows = data.table.rows
-      } else if (Array.isArray(data)) {
-        rows = data
-      } else if (data.values) {
-        rows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }))
-      }
-
       rows.forEach((row, rowIndex) => {
-        if (rowIndex === 0) return // Skip header
-
         let rowValues = []
         if (row.c) {
-          rowValues = row.c.map((cell) => (cell && cell.v !== undefined ? cell.v : ""))
+          rowValues = row.c.map((cell) => {
+            if (!cell) return ""
+            return cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || "")
+          })
         } else if (Array.isArray(row)) {
           rowValues = row
         } else {
-          console.log("Unknown row format:", row)
           return
         }
 
+        // If this is a header row, skip it
+        const isHeader = String(rowValues[1] || "").toLowerCase().includes("task id")
+        if (isHeader) return
+
         const assignedTo = rowValues[4] || "Unassigned" // Column E
-        const isUserMatch = currentUserRole === "admin" || assignedTo.toLowerCase() === currentUsername.toLowerCase()
+        const isUserMatch = currentUserRole === "admin" || (currentUsername && assignedTo.toLowerCase() === currentUsername.toLowerCase())
         if (!isUserMatch && currentUserRole !== "admin") return
 
         const columnKValue = rowValues[10] // Column K
@@ -227,7 +204,7 @@ function ReverificationPage() {
         const hasColumnL = !isEmpty(columnLValue)
         const hasColumnS = !isEmpty(columnSValue)
 
-        const googleSheetsRowIndex = rowIndex + 1
+        const googleSheetsRowIndex = isGviz ? rowIndex + 2 : rowIndex + 1
         const taskId = rowValues[1] || "" // Column B
 
         const stableId = taskId

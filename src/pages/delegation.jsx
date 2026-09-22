@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Sparkles, FileText, AlertCircle, User, Calendar, ChevronRight } from "lucide-react"
 import AdminLayout from "../components/layout/AdminLayout"
 import { sendOverdueAlert } from "../utils/telegram"
+import { fetchSheetDataFast } from "../utils/sheetApi"
 
 // Configuration object - Move all configurations here
 const CONFIG = {
@@ -266,112 +267,69 @@ function DelegationDataPage() {
       setLoading(true)
       setError(null)
 
-      // Parallel fetch both sheets for better performance
-      const [mainResponse, historyResponse] = await Promise.all([
-        fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.SOURCE_SHEET_NAME}&action=fetch`),
-        fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.TARGET_SHEET_NAME}&action=fetch`).catch(() => null),
+      // Parallel fetch both sheets using fast GViz API
+      const [mainResult, historyResult] = await Promise.all([
+        fetchSheetDataFast(CONFIG.SOURCE_SHEET_NAME),
+        fetchSheetDataFast(CONFIG.TARGET_SHEET_NAME).catch(() => ({ rows: [], isGviz: true })),
       ])
-
-      if (!mainResponse.ok) {
-        throw new Error(`Failed to fetch data: ${mainResponse.status}`)
-      }
-
-      // Process main data
-      const mainText = await mainResponse.text()
-      let data
-      try {
-        data = JSON.parse(mainText)
-      } catch (parseError) {
-        const jsonStart = mainText.indexOf("{")
-        const jsonEnd = mainText.lastIndexOf("}")
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          const jsonString = mainText.substring(jsonStart, jsonEnd + 1)
-          data = JSON.parse(jsonString)
-        } else {
-          throw new Error("Invalid JSON response from server")
-        }
-      }
 
       // Process history data if available
       let processedHistoryData = []
-      if (historyResponse && historyResponse.ok) {
-        try {
-          const historyText = await historyResponse.text()
-          let historyData
-          try {
-            historyData = JSON.parse(historyText)
-          } catch (parseError) {
-            const jsonStart = historyText.indexOf("{")
-            const jsonEnd = historyText.lastIndexOf("}")
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-              const jsonString = historyText.substring(jsonStart, jsonEnd + 1)
-              historyData = JSON.parse(jsonString)
+      if (historyResult && historyResult.rows) {
+        processedHistoryData = historyResult.rows
+          .map((row, rowIndex) => {
+            const rowValues = row.c
+              ? row.c.map((cell) => (cell && (cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || ""))))
+              : (Array.isArray(row) ? row : [])
+
+            // If header row, skip
+            if (String(rowValues[1] || "").toLowerCase().includes("task id")) return null
+
+            const gsRow = historyResult.isGviz ? rowIndex + 2 : rowIndex + 1
+            const rowData = {
+              _id: Math.random().toString(36).substring(2, 15),
+              _rowIndex: gsRow,
             }
-          }
 
-          if (historyData && historyData.table && historyData.table.rows) {
-            processedHistoryData = historyData.table.rows
-              .map((row, rowIndex) => {
-                if (rowIndex === 0) return null
+            // Map all columns including column H (col7) for user filtering
+            rowData["col0"] = rowValues[0] ? parseGoogleSheetsDate(String(rowValues[0])) : ""
+            rowData["col1"] = rowValues[1] || ""
+            rowData["col2"] = rowValues[2] || ""
+            rowData["col3"] = rowValues[3] || ""
+            rowData["col4"] = rowValues[4] || ""
+            rowData["col5"] = rowValues[5] || ""
+            rowData["col6"] = rowValues[6] || ""
+            rowData["col7"] = rowValues[7] || "" // Column H - User name
+            rowData["col8"] = rowValues[8] || "" // Column I - Task Description
 
-                const rowData = {
-                  _id: Math.random().toString(36).substring(2, 15),
-                  _rowIndex: rowIndex + 2,
-                }
-
-                const rowValues = row.c ? row.c.map((cell) => (cell && cell.v !== undefined ? cell.v : "")) : []
-
-                // Map all columns including column H (col7) for user filtering
-                rowData["col0"] = rowValues[0] ? parseGoogleSheetsDate(String(rowValues[0])) : ""
-                rowData["col1"] = rowValues[1] || ""
-                rowData["col2"] = rowValues[2] || ""
-                rowData["col3"] = rowValues[3] || ""
-                rowData["col4"] = rowValues[4] || ""
-                rowData["col5"] = rowValues[5] || ""
-                rowData["col6"] = rowValues[6] || ""
-                rowData["col7"] = rowValues[7] || "" // Column H - User name
-                rowData["col8"] = rowValues[8] || "" // Column I - Task Description
-
-                return rowData
-              })
-              .filter((row) => row !== null)
-          }
-        } catch (historyError) {
-          console.error("Error processing history data:", historyError)
-        }
+            return rowData
+          })
+          .filter((row) => row !== null)
       }
 
       setHistoryData(processedHistoryData)
 
-      // Process main delegation data - REMOVED DATE FILTERING
+      // Process main delegation data
       const currentUsername = sessionStorage.getItem("username")
       const currentUserRole = sessionStorage.getItem("role")
 
       const pendingAccounts = []
 
-      let rows = []
-      if (data.table && data.table.rows) {
-        rows = data.table.rows
-      } else if (Array.isArray(data)) {
-        rows = data
-      } else if (data.values) {
-        rows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }))
-      }
-
-      rows.forEach((row, rowIndex) => {
-        if (rowIndex === 0) return // Skip header row
-
+      mainResult.rows.forEach((row, rowIndex) => {
         let rowValues = []
         if (row.c) {
-          rowValues = row.c.map((cell) => (cell && cell.v !== undefined ? cell.v : ""))
+          rowValues = row.c.map((cell) => (cell && (cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || ""))))
         } else if (Array.isArray(row)) {
           rowValues = row
         } else {
           return
         }
 
+        // If header row, skip
+        if (String(rowValues[1] || "").toLowerCase().includes("task id")) return
+
         const assignedTo = rowValues[4] || "Unassigned"
-        const isUserMatch = currentUserRole === "admin" || assignedTo.toLowerCase() === currentUsername.toLowerCase()
+        const isUserMatch = currentUserRole === "admin" || (currentUsername && assignedTo.toLowerCase() === currentUsername.toLowerCase())
         if (!isUserMatch && currentUserRole !== "admin") return
 
         // Check conditions: Column K not null and Column L null
@@ -385,9 +343,7 @@ function DelegationDataPage() {
           return
         }
 
-        // REMOVED DATE FILTERING - Show all data regardless of date
-
-        const googleSheetsRowIndex = rowIndex + 1
+        const googleSheetsRowIndex = mainResult.isGviz ? rowIndex + 2 : rowIndex + 1
         const taskId = rowValues[1] || ""
         const stableId = taskId
           ? `task_${taskId}_${googleSheetsRowIndex}`

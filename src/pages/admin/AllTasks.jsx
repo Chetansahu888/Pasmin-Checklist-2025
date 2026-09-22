@@ -4,7 +4,7 @@ import AdminLayout from "../../components/layout/AdminLayout"
 
 const AllTasks = () => {
   // Google Sheets configuration
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRbhgAN0TfMUWOgZ1UPiOAsVyUrj7aDM0hOeybHvB-K7NniRVhwhH3foVs5l4u2N2z/exec"
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzxy5T34g3xcteQg6CT5sLNSCYsU8gXqxGBN3vnz2gWI5MxO8pb_fuw_k_FT5kx06hG/exec"
   const SHEET_NAME = "DATA"
   const SHEET_ID = "1hlFNmLJ_qY7LMpN0pP-N3KWdf0_JRwFvfqWjjLyCDb8" // Your specific sheet ID
 

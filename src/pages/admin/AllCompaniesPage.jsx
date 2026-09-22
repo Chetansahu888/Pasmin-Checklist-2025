@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Sparkles, FileText, ChevronRight, User, Calendar } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
+import { fetchSheetDataFast } from "../../utils/sheetApi"
 
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbzxy5T34g3xcteQg6CT5sLNSCYsU8gXqxGBN3vnz2gWI5MxO8pb_fuw_k_FT5kx06hG/exec"
@@ -155,16 +156,9 @@ function CompanyTaskContent({ config }) {
   const fetchSheetData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const pending = [], history = []
-      const resp = await fetch(`${APPS_SCRIPT_URL}?sheet=${config.SHEET_NAME}&action=fetch`)
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const text = await resp.text()
-      let data
-      try { data = JSON.parse(text) } catch {
-        const s = text.indexOf("{"), e = text.lastIndexOf("}")
-        if (s !== -1 && e !== -1) data = JSON.parse(text.substring(s, e+1))
-        else throw new Error("Invalid JSON")
-      }
+      const { rows, isGviz } = await fetchSheetDataFast(config.SHEET_NAME)
 
       const curUser = sessionStorage.getItem("username")
       const curRole = sessionStorage.getItem("role")
@@ -174,21 +168,22 @@ function CompanyTaskContent({ config }) {
       const tomorrowStr = formatDateToDDMMYYYY(tomorrow)
       const membersSet = new Set()
 
-      let rows = data.table?.rows || (Array.isArray(data) ? data : [])
-
       rows.forEach((row, ri) => {
-        if (ri === 0) return
-        const rv = row.c ? row.c.map(c => c?.v ?? "") : (Array.isArray(row) ? row : [])
+        const rv = row.c ? row.c.map(c => (c && (c.v !== undefined && c.v !== null ? c.v : (c.f || "")))) : (Array.isArray(row) ? row : [])
+
+        // Skip header row if present
+        if (String(rv[1] || "").toLowerCase().includes("task id")) return
+
         const assignedTo = rv[4] || "Unassigned"
         membersSet.add(assignedTo)
-        const isMatch = curRole === "admin" || assignedTo.toLowerCase() === curUser?.toLowerCase()
+        const isMatch = curRole === "admin" || (curUser && assignedTo.toLowerCase() === curUser.toLowerCase())
         if (!isMatch) return
 
         const colG = rv[6], colK = rv[10], colM = rv[12]
         if (colM?.toString().trim() === "DONE") return
 
         const taskId = rv[1] || ""
-        const gsRow = ri + 1
+        const gsRow = isGviz ? ri + 2 : ri + 1
         const stableId = taskId ? `task_${taskId}_${gsRow}` : `row_${gsRow}_${Math.random().toString(36).slice(2)}`
         const rowData = { _id: stableId, _rowIndex: gsRow, _taskId: taskId }
 

@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { CheckCircle2, Upload, X, Search, History, ArrowLeft, Filter, Sparkles, FileText, AlertCircle, ChevronRight, User, Calendar } from "lucide-react"
 import AdminLayout from "../../components/layout/AdminLayout"
+import { fetchSheetDataFast } from "../../utils/sheetApi"
 
 // Configuration object - Move all configurations here
 const CONFIG = {
@@ -213,30 +214,11 @@ function RefratechDataPage() {
   const fetchSheetData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const pendingAccounts = []
       const historyRows = []
 
-      const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?sheet=${CONFIG.SHEET_NAME}&action=fetch`)
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`)
-      }
-
-      const text = await response.text()
-      let data
-
-      try {
-        data = JSON.parse(text)
-      } catch (parseError) {
-        const jsonStart = text.indexOf("{")
-        const jsonEnd = text.lastIndexOf("}")
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          const jsonString = text.substring(jsonStart, jsonEnd + 1)
-          data = JSON.parse(jsonString)
-        } else {
-          throw new Error("Invalid JSON response from server")
-        }
-      }
+      const { rows, isGviz } = await fetchSheetDataFast(CONFIG.SHEET_NAME)
 
       const currentUsername = sessionStorage.getItem("username")
       const currentUserRole = sessionStorage.getItem("role")
@@ -252,32 +234,23 @@ function RefratechDataPage() {
 
       const membersSet = new Set()
 
-      let rows = []
-      if (data.table && data.table.rows) {
-        rows = data.table.rows
-      } else if (Array.isArray(data)) {
-        rows = data
-      } else if (data.values) {
-        rows = data.values.map((row) => ({ c: row.map((val) => ({ v: val })) }))
-      }
-
       rows.forEach((row, rowIndex) => {
-        if (rowIndex === 0) return
-
         let rowValues = []
         if (row.c) {
-          rowValues = row.c.map((cell) => (cell && cell.v !== undefined ? cell.v : ""))
+          rowValues = row.c.map((cell) => (cell && (cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || ""))))
         } else if (Array.isArray(row)) {
           rowValues = row
         } else {
-          console.log("Unknown row format:", row)
           return
         }
+
+        // Skip header if present
+        if (String(rowValues[1] || "").toLowerCase().includes("task id")) return
 
         const assignedTo = rowValues[4] || "Unassigned"
         membersSet.add(assignedTo)
 
-        const isUserMatch = currentUserRole === "admin" || assignedTo.toLowerCase() === currentUsername.toLowerCase()
+        const isUserMatch = currentUserRole === "admin" || (currentUsername && assignedTo.toLowerCase() === currentUsername.toLowerCase())
         if (!isUserMatch && currentUserRole !== "admin") return
 
         const columnGValue = rowValues[6]
@@ -291,7 +264,7 @@ function RefratechDataPage() {
         const rowDateStr = columnGValue ? String(columnGValue).trim() : ""
         const formattedRowDate = parseGoogleSheetsDate(rowDateStr)
 
-        const googleSheetsRowIndex = rowIndex + 1
+        const googleSheetsRowIndex = isGviz ? rowIndex + 2 : rowIndex + 1
 
         // Create stable unique ID using task ID and row index
         const taskId = rowValues[1] || ""
