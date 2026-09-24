@@ -106,7 +106,7 @@ function DelegationDataPage() {
 
       // Handle Google Sheets Date() format
       if (typeof dateStr === "string" && dateStr.startsWith("Date(")) {
-        const match = /Date$$(\d+),(\d+),(\d+)$$/.exec(dateStr)
+        const match = /Date\((\d+),\s*(\d+),\s*(\d+)/.exec(dateStr)
         if (match) {
           const year = Number.parseInt(match[1], 10)
           const month = Number.parseInt(match[2], 10)
