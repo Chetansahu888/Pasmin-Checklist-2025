@@ -343,6 +343,12 @@ function DelegationDataPage() {
           return
         }
 
+        // Skip tasks already marked Done in Column N (Actual can stay blank when the
+        // DELEGATION DONE entry has no timestamp)
+        if (String(rowValues[13] || "").trim().toLowerCase() === "done") {
+          return
+        }
+
         const googleSheetsRowIndex = mainResult.isGviz ? rowIndex + 2 : rowIndex + 1
         const taskId = rowValues[1] || ""
         const stableId = taskId
