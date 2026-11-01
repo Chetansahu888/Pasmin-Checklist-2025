@@ -103,8 +103,8 @@ function ReverificationPage() {
   }
 
   const sortDateWise = (a, b) => {
-    const dateStrA = a["colK"] || ""
-    const dateStrB = b["colK"] || ""
+    const dateStrA = a["colL"] || ""
+    const dateStrB = b["colL"] || ""
     const dateA = parseDateFromDDMMYYYY(dateStrA)
     const dateB = parseDateFromDDMMYYYY(dateStrB)
     if (!dateA) return 1
@@ -589,11 +589,14 @@ function ReverificationPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Task Description
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Completion Remark
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
                       Task Start Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
-                      Planned Date
+                      Done Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">
                       Verification Date
@@ -629,11 +632,16 @@ function ReverificationPage() {
                             {history["colF"] || "—"}
                           </div>
                         </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs" title={history["colP"]}>
+                            {history["colP"] || "—"}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap bg-yellow-50">
                           <div className="text-sm text-gray-900">{history["colG"] || "—"}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap bg-blue-50">
-                          <div className="text-sm text-gray-900">{history["colK"] || "—"}</div>
+                          <div className="text-sm text-gray-900">{history["colL"] || "—"}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap bg-green-50">
                           <div className="text-sm font-medium text-gray-900">{history["colS"] || "—"}</div>
@@ -659,7 +667,7 @@ function ReverificationPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={11} className="px-6 py-4 text-center text-gray-500">
                         {searchTerm
                           ? "No historical records matching your search"
                           : "No completed re-verification records found"}
@@ -698,11 +706,14 @@ function ReverificationPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Task Description
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Completion Remark
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
                       Task Start Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
-                      Planned Date
+                      Done Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-orange-50">
                       Work Done Days
@@ -744,11 +755,16 @@ function ReverificationPage() {
                               {task["colF"] || "—"}
                             </div>
                           </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs truncate" title={task["colP"]}>
+                              {task["colP"] || "—"}
+                            </div>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap bg-yellow-50">
                             <div className="text-sm text-gray-900">{task["colG"] || "—"}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap bg-blue-50">
-                            <div className="text-sm text-gray-900">{task["colK"] || "—"}</div>
+                            <div className="text-sm text-gray-900">{task["colL"] || "—"}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap bg-orange-50">
                             {daysPending !== null ? (
@@ -776,7 +792,7 @@ function ReverificationPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={11} className="px-6 py-4 text-center text-gray-500">
                         {searchTerm
                           ? "No tasks matching your search"
                           : "No pending re-verification tasks found"}
