@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { CheckCircle2, Search, History, ArrowLeft, Sparkles, FileText, Calendar, Filter, ChevronRight, AlertCircle } from "lucide-react"
+import { CheckCircle2, Search, History, ArrowLeft, Sparkles, FileText, Calendar, Filter, ChevronRight, AlertCircle, Undo2 } from "lucide-react"
 import AdminLayout from "../components/layout/AdminLayout"
 import { fetchSheetDataFast } from "../utils/sheetApi"
 
@@ -419,6 +419,61 @@ function ReverificationPage() {
     }
   }
 
+  // SEND BACK: return selected tasks to the doer (clears done date so they reappear in Delegation)
+  const handleSendBack = async () => {
+    const selectedItemsArray = Array.from(selectedItems)
+
+    if (selectedItemsArray.length === 0) {
+      alert("Please select at least one item to send back")
+      return
+    }
+
+    const missingRemarks = selectedItemsArray.filter((id) => !remarksData[id] || remarksData[id].trim() === "")
+    if (missingRemarks.length > 0) {
+      alert(`Please enter a remark (reason) for all selected items. ${missingRemarks.length} item(s) are missing remarks.`)
+      return
+    }
+
+    if (!window.confirm(`Send ${selectedItemsArray.length} task(s) back to the doer?`)) return
+
+    setIsSubmitting(true)
+    const backupTasks = taskData
+    try {
+      const submissionData = selectedItemsArray.map((id) => {
+        const item = taskData.find((task) => task._id === id)
+        return {
+          taskId: item["colB"],
+          rowIndex: item._rowIndex,
+          remarks: remarksData[id] || "",
+        }
+      })
+
+      const formData = new FormData()
+      formData.append("sheetName", CONFIG.SHEET_NAME)
+      formData.append("action", "sendBackVerification")
+      formData.append("rowData", JSON.stringify(submissionData))
+
+      const response = await fetch(CONFIG.APPS_SCRIPT_URL, { method: "POST", body: formData })
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send back")
+      }
+
+      setTaskData((prev) => prev.filter((item) => !selectedItems.has(item._id)))
+      setSelectedItems(new Set())
+      setRemarksData({})
+      setSuccessMessage(`${selectedItemsArray.length} task(s) sent back to the doer.`)
+      setTimeout(() => setSuccessMessage(""), 5000)
+    } catch (error) {
+      console.error("Send back error:", error)
+      setTaskData(backupTasks)
+      alert("Error sending back tasks: " + error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // Convert Set to Array for display
   const selectedItemsCount = selectedItems.size
 
@@ -458,6 +513,20 @@ function ReverificationPage() {
                 </>
               )}
             </button>
+
+            {!showHistory && (
+              <button
+                onClick={handleSendBack}
+                disabled={selectedItemsCount === 0 || isSubmitting}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl py-3 px-5 font-semibold transition-all shadow-sm border ${selectedItemsCount === 0 || isSubmitting
+                    ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                    : "bg-white text-red-600 border-red-300 hover:bg-red-50"
+                  }`}
+              >
+                <Undo2 className="h-5 w-5" />
+                <span>{`Back (${selectedItemsCount})`}</span>
+              </button>
+            )}
 
             {!showHistory && (
               <button

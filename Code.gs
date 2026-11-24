@@ -95,6 +95,11 @@ function doPost(e) {
       return updateReverificationData(params);
     }
     
+    // Handle sending verification tasks back to the doer
+    if (params.action === 'sendBackVerification') {
+      return sendBackVerification(params);
+    }
+
     if (params.action === 'uploadFile') {
       var base64Data = params.base64Data;
       var fileName = params.fileName;
@@ -307,6 +312,53 @@ function updateReverificationData(params) {
       success: false,
       error: error.toString(),
       message: "Failed to update re-verification data: " + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Send task back to the doer: clears Actual (K), Mark Done Date (L), Status (M)
+// and stores the reason in Column T so the task shows up as pending in DELEGATION again.
+function sendBackVerification(params) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(params.sheetName);
+    if (!sheet) {
+      throw new Error("Sheet not found: " + params.sheetName);
+    }
+    var rowDataArray = JSON.parse(params.rowData);
+
+    rowDataArray.forEach(function(taskData) {
+      var rowIndex = parseInt(taskData.rowIndex);
+      if (isNaN(rowIndex) || rowIndex < 2) {
+        throw new Error("Invalid row index: " + taskData.rowIndex + " (must be >= 2)");
+      }
+
+      var currentTaskId = sheet.getRange(rowIndex, 2).getValue();
+      if (currentTaskId.toString().trim() !== taskData.taskId.toString().trim()) {
+        var correctRow = findRowByTaskId(sheet, taskData.taskId);
+        if (correctRow > 0) {
+          rowIndex = correctRow;
+        } else {
+          throw new Error("Task ID mismatch and could not find correct row for Task ID: " + taskData.taskId);
+        }
+      }
+
+      sheet.getRange(rowIndex, 11).clearContent(); // K - Actual
+      sheet.getRange(rowIndex, 12).clearContent(); // L - Mark Done Date
+      sheet.getRange(rowIndex, 13).clearContent(); // M - Status
+      sheet.getRange(rowIndex, 19).clearContent(); // S - Verification Date
+      sheet.getRange(rowIndex, 20).setValue("Sent back: " + (taskData.remarks || "")); // T - Remarks
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "Tasks sent back successfully",
+      updatedRows: rowDataArray.length
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    console.error("Error sending back tasks:", error);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
